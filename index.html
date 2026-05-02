@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<!-- GroceryERP - mini project for DTI -->
+<!-- frontend only, data is stored in browser localStorage -->
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GroceryERP – Smart Store Management</title>
+    <meta name="description"
+        content="Complete ERP solution for grocery shops – inventory, billing, stock & sales reports." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">🛒</div>
+            <div class="brand-text">
+                <span class="brand-name">GroceryERP</span>
+                <span class="brand-sub">Smart Store</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <a class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+                <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+            </a>
+            <a class="nav-item" data-page="inventory" onclick="navigate('inventory')">
+                <span class="nav-icon">📦</span><span class="nav-label">Inventory</span>
+            </a>
+            <a class="nav-item" data-page="billing" onclick="navigate('billing')">
+                <span class="nav-icon">🧾</span><span class="nav-label">Billing / POS</span>
+            </a>
+            <a class="nav-item" data-page="suppliers" onclick="navigate('suppliers')">
+                <span class="nav-icon">🚚</span><span class="nav-label">Suppliers</span>
+            </a>
+            <div class="nav-section-label">Reports</div>
+            <a class="nav-item" data-page="stock-report" onclick="navigate('stock-report')">
+                <span class="nav-icon">📋</span><span class="nav-label">Stock Report</span>
+            </a>
+            <a class="nav-item" data-page="sales-report" onclick="navigate('sales-report')">
+                <span class="nav-icon">💹</span><span class="nav-label">Sales Report</span>
+            </a>
+            <a class="nav-item" data-page="account-report" onclick="navigate('account-report')">
+                <span class="nav-icon">💰</span><span class="nav-label">Account Report</span>
+            </a>
+            <a class="nav-item" data-page="expiry" onclick="navigate('expiry')">
+                <span class="nav-icon">⏳</span><span class="nav-label">Expiry Alerts</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="store-info">
+                <span class="store-dot"></span>
+                <span id="storeName">Fresh Mart</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-wrap">
+        <!-- TOPBAR -->
+        <header class="topbar">
+            <button class="menu-btn" onclick="toggleSidebar()" id="menuBtn">☰</button>
+            <div class="topbar-title" id="pageTitle">Dashboard</div>
+            <div class="topbar-actions">
+                <div class="search-wrap">
+                    <input type="text" id="globalSearch" placeholder="Search products…"
+                        oninput="globalSearchFn(this.value)" />
+                    <span class="search-icon">🔍</span>
+                    <div class="search-results" id="searchResults"></div>
+                </div>
+                <button class="btn-icon" id="themeBtn" title="Toggle Light/Dark" onclick="toggleTheme()">☀️</button>
+                <button class="btn-icon" title="Notifications" onclick="showNotifications()">🔔<span class="notif-badge"
+                        id="notifBadge">0</span></button>
+                <div class="avatar">FM</div>
+            </div>
+        </header>
+
+        <!-- PAGES -->
+        <main class="page-container">
+
+            <!-- DASHBOARD -->
+            <section class="page active" id="page-dashboard">
+                <div class="page-header">
+                    <h1>Dashboard Overview</h1>
+                    <span class="date-badge" id="todayDate"></span>
+                </div>
+                <div class="kpi-grid">
+                    <div class="kpi-card" style="--accent:#6366f1">
+                        <div class="kpi-icon">💹</div>
+                        <div class="kpi-info">
+                            <div class="kpi-value" id="kpi-sales">₹0</div>
+                            <div class="kpi-label">Today's Sales</div>
+                        </div>
+                    </div>
+                    <div class="kpi-card" style="--accent:#10b981">
+                        <div class="kpi-icon">📦</div>
+                        <div class="kpi-info">
+                            <div class="kpi-value" id="kpi-products">0</div>
+                            <div class="kpi-label">Total Products</div>
+                        </div>
+                    </div>
+                    <div class="kpi-card" style="--accent:#f59e0b">
+                        <div class="kpi-icon">⚠️</div>
+                        <div class="kpi-info">
+                            <div class="kpi-value" id="kpi-lowstock">0</div>
+                            <div class="kpi-label">Low Stock Items</div>
+                        </div>
+                    </div>
+                    <div class="kpi-card" style="--accent:#ef4444">
+                        <div class="kpi-icon">⏳</div>
+                        <div class="kpi-info">
+                            <div class="kpi-value" id="kpi-expiry">0</div>
+                            <div class="kpi-label">Expiring Soon</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="charts-row">
+                    <div class="chart-card wide">
+                        <div class="chart-title">Weekly Sales (₹)</div>
+                        <canvas id="weeklySalesChart" height="100"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-title">Stock by Category</div>
+                        <canvas id="categoryChart" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="dash-bottom">
+                    <div class="recent-card">
+                        <div class="section-title">Recent Bills</div>
+                        <div id="recentBillsList" class="recent-list"></div>
+                    </div>
+                    <div class="recent-card">
+                        <div class="section-title">Low Stock Alerts</div>
+                        <div id="lowStockList" class="recent-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- INVENTORY -->
+            <section class="page" id="page-inventory">
+                <div class="page-header">
+                    <h1>Inventory Management</h1>
+                    <div style="display:flex;gap:10px">
+                        <button class="btn-outline" onclick="openQRLabels()">🏷️ Print QR Labels</button>
+                        <button class="btn-primary" onclick="openModal('addProductModal')">+ Add Product</button>
+                    </div>
+                </div>
+                <div class="filter-bar">
+                    <input type="text" id="invSearch" placeholder="Search inventory…" oninput="filterInventory()"
+                        class="filter-input" />
+                    <select id="invCategory" onchange="filterInventory()" class="filter-select">
+                        <option value="">All Categories</option>
+                    </select>
+                    <select id="invStock" onchange="filterInventory()" class="filter-select">
+                        <option value="">All Stock</option>
+                        <option value="low">Low Stock</option>
+                        <option value="ok">In Stock</option>
+                    </select>
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table" id="inventoryTable">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Price (₹)</th>
+                                <th>Cost (₹)</th>
+                                <th>Stock (qty)</th>
+                                <th>Unit</th>
+                                <th>Expiry</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- BILLING / POS -->
+            <section class="page" id="page-billing">
+                <div class="page-header">
+                    <h1>Billing / POS</h1>
+                    <div class="bill-meta">
+                        <span>Bill #<strong id="billNo">001</strong></span>
+                        <span id="billDate"></span>
+                    </div>
+                </div>
+                <div class="pos-layout">
+                    <div class="pos-left">
+                        <div class="pos-search-wrap">
+                            <div class="pos-search-row">
+                                <input type="text" id="posSearch" placeholder="Search or scan product…"
+                                    oninput="posSearchFn(this.value)" class="pos-search" />
+                                <button class="btn-scan" id="scanBtn" onclick="toggleScanner()" title="Scan QR Code">📷
+                                    Scan QR</button>
+                            </div>
+                            <div class="pos-results" id="posResults"></div>
+                            <div id="qrScannerWrap" class="qr-scanner-wrap" style="display:none">
+                                <div id="qrScannerView"></div>
+                                <div class="scanner-hint">Point camera at product QR code</div>
+                            </div>
+                        </div>
+                        <div class="pos-products" id="posProducts"></div>
+                    </div>
+                    <div class="pos-right">
+                        <div class="cart-header">🛒 Cart</div>
+                        <div class="cart-items" id="cartItems"></div>
+                        <div class="cart-summary">
+                            <div class="summary-row"><span>Subtotal</span><span id="subtotal">₹0.00</span></div>
+                            <div class="summary-row"><span>Discount (%)</span>
+                                <input type="number" id="discountInput" value="0" min="0" max="100"
+                                    oninput="calcTotal()" class="discount-input" />
+                            </div>
+                            <div class="summary-row"><span>GST (18%)</span><span id="gstAmt">₹0.00</span></div>
+                            <div class="summary-row total-row"><span>TOTAL</span><span id="grandTotal">₹0.00</span>
+                            </div>
+                        </div>
+                        <div class="pay-section">
+                            <select id="payMode" class="filter-select">
+                                <option>Cash</option>
+                                <option>UPI</option>
+                                <option>Card</option>
+                                <option>Credit</option>
+                            </select>
+                            <input type="text" id="customerName" placeholder="Customer name (opt.)"
+                                class="filter-input" />
+                            <button class="btn-primary full-width" onclick="generateBill()">Generate Bill 🧾</button>
+                            <button class="btn-outline full-width" onclick="clearCart()">Clear Cart</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SUPPLIERS -->
+            <section class="page" id="page-suppliers">
+                <div class="page-header">
+                    <h1>Supplier Management</h1>
+                    <button class="btn-primary" onclick="openModal('addSupplierModal')">+ Add Supplier</button>
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Contact</th>
+                                <th>Email</th>
+                                <th>Products</th>
+                                <th>Balance (₹)</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="supplierBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- STOCK REPORT -->
+            <section class="page" id="page-stock-report">
+                <div class="page-header">
+                    <h1>Stock Report</h1>
+                    <div style="display:flex;gap:10px">
+                        <button class="btn-outline" onclick="exportToExcel('stock')">📥 Export Excel</button>
+                        <button class="btn-outline" onclick="printSection('stockReportContent')">🖨 Print</button>
+                    </div>
+                </div>
+                <div id="stockReportContent">
+                    <div class="kpi-grid">
+                        <div class="kpi-card" style="--accent:#6366f1">
+                            <div class="kpi-icon">📦</div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="sr-total">0</div>
+                                <div class="kpi-label">Total SKUs</div>
+                            </div>
+                        </div>
+                        <div class="kpi-card" style="--accent:#10b981">
+                            <div class="kpi-icon">✅</div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="sr-instock">0</div>
+                                <div class="kpi-label">In Stock</div>
+                            </div>
+                        </div>
+                        <div class="kpi-card" style="--accent:#f59e0b">
+                            <div class="kpi-icon">⚠️</div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="sr-low">0</div>
+                                <div class="kpi-label">Low Stock</div>
+                            </div>
+                        </div>
+                        <div class="kpi-card" style="--accent:#ef4444">
+                            <div class="kpi-icon">❌</div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="sr-out">0</div>
+                                <div class="kpi-label">Out of Stock</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-card" style="max-width:100%">
+                        <div class="chart-title">Stock Levels by Product</div>
+                        <canvas id="stockBarChart" height="80"></canvas>
+                    </div>
+                    <div class="table-wrap" style="margin-top:1.5rem">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Category</th>
+                                    <th>Stock</th>
+                                    <th>Unit</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stockReportBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SALES REPORT -->
+            <section class="page" id="page-sales-report">
+                <div class="page-header">
+                    <h1>Sales Report</h1>
+                    <div style="display:flex;gap:.75rem;align-items:center">
+                        <select id="salesPeriod" onchange="renderSalesReport()" class="filter-select">
+                            <option value="daily">Today</option>
+                            <option value="weekly" selected>This Week</option>
+                            <option value="monthly">This Month</option>
+                            <option value="all">All Time</option>
+                        </select>
+                        <button class="btn-outline" onclick="exportToExcel('sales')">📥 Export Excel</button>
+                        <button class="btn-outline" onclick="printSection('salesReportContent')">🖨 Print</button>
+                    </div>
+                </div>
+                <div id="salesReportContent">
+                    <div class="kpi-grid">
+                        <div class="kpi-card" style="--accent:#6366f1">
+                            <div class="kpi-icon">💹</div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="sl-revenue">₹0</div>
+                                <div class="kpi-label">Total Revenue</div>
+                            </div>
+                        </div>
+                        <div class="kpi-card" style="--accent:#10b981">
+                            <div class="kpi-icon">🧾</div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="sl-bills">0</div>
+                                <div class="kpi-label">Total Bills</div>
+                            </div>
+                        </div>
+                        <div class="kpi-card" style="--accent:#f59e0b">
+                            <div class="kpi-icon">🛍️</div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="sl-items">0</div>
+                                <div class="kpi-label">Items Sold</div>
+                            </div>
+                        </div>
+                        <div class="kpi-card" style="--accent:#8b5cf6">
+                            <div class="kpi-icon">📈</div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="sl-avg">₹0</div>
+                                <div class="kpi-label">Avg Bill Value</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="charts-row">
+                        <div class="chart-card wide">
+                            <div class="chart-title">Sales Trend</div>
+                            <canvas id="salesTrendChart" height="100"></canvas>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-title">Top Products</div>
+                            <canvas id="topProductsChart" height="200"></canvas>
+                        </div>
+                    </div>
+                    <div class="table-wrap" style="margin-top:1.5rem">
+                        <div class="section-title">Transaction History</div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Bill #</th>
+                                    <th>Date</th>
+                                    <th>Customer</th>
+                                    <th>Items</th>
+                                    <th>Amount (₹)</th>
+                                    <th>Payment</th>
+                                </tr>
+                            </thead>
+                            <tbody id="salesTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ACCOUNT REPORT -->
+            <section class="page" id="page-account-report">
+                <div class="page-header">
+                    <h1>Account Report</h1>
+                    <div style="display:flex;gap:10px">
+                        <button class="btn-outline" onclick="exportToExcel('account')">📥 Export Excel</button>
+                        <button class="btn-outline" onclick="printSection('accountContent')">🖨 Print</button>
+                    </div>
+                </div>
+                <div id="accountContent">
+                    <div class="kpi-grid">
+                        <div class="kpi-card" style="--accent:#10b981">
+                            <div class="kpi-icon">💰</div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="ac-revenue">₹0</div>
+                                <div class="kpi-label">Total Revenue</div>
+                            </div>
+                        </div>
+                        <div class="kpi-card" style="--accent:#ef4444">
+                            <div class="kpi-icon">💸</div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="ac-cost">₹0</div>
+                                <div class="kpi-label">Total COGS</div>
+                            </div>
+                        </div>
+                        <div class="kpi-card" style="--accent:#6366f1">
+                            <div class="kpi-icon">📊</div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="ac-profit">₹0</div>
+                                <div class="kpi-label">Gross Profit</div>
+                            </div>
+                        </div>
+                        <div class="kpi-card" style="--accent:#f59e0b">
+                            <div class="kpi-icon">📉</div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="ac-margin">0%</div>
+                                <div class="kpi-label">Profit Margin</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-card" style="max-width:100%">
+                        <div class="chart-title">Revenue vs Cost vs Profit</div>
+                        <canvas id="profitChart" height="80"></canvas>
+                    </div>
+                    <div class="table-wrap" style="margin-top:1.5rem">
+                        <div class="section-title">Payment Mode Breakdown</div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Payment Mode</th>
+                                    <th>Transactions</th>
+                                    <th>Total (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payModeBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- EXPIRY ALERTS -->
+            <section class="page" id="page-expiry">
+                <div class="page-header">
+                    <h1>Expiry Alerts</h1>
+                    <select id="expiryFilter" onchange="renderExpiry()" class="filter-select">
+                        <option value="7">Expiring in 7 days</option>
+                        <option value="15">Expiring in 15 days</option>
+                        <option value="30">Expiring in 30 days</option>
+                        <option value="all">All with expiry</option>
+                    </select>
+                </div>
+                <div id="expiryList" class="expiry-grid"></div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODALS -->
+    <div class="modal-overlay" id="addProductModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="productModalTitle">Add Product</h2>
+                <button class="modal-close" onclick="closeModal('addProductModal')">✕</button>
+            </div>
+            <form id="productForm" onsubmit="saveProduct(event)">
+                <input type="hidden" id="editProductId" />
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Product Name *</label>
+                        <input type="text" id="pName" required placeholder="e.g. Amul Butter 100g" />
+                    </div>
+                    <div class="form-group">
+                        <label>Category *</label>
+                        <select id="pCategory" required>
+                            <option value="">Select…</option>
+                            <option>Dairy</option>
+                            <option>Grains & Pulses</option>
+                            <option>Beverages</option>
+                            <option>Snacks</option>
+                            <option>Fruits & Vegetables</option>
+                            <option>Personal Care</option>
+                            <option>Household</option>
+                            <option>Frozen Foods</option>
+                            <option>Spices</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Selling Price (₹) *</label>
+                        <input type="number" id="pPrice" required min="0" step="0.01" placeholder="0.00" />
+                    </div>
+                    <div class="form-group">
+                        <label>Cost Price (₹) *</label>
+                        <input type="number" id="pCost" required min="0" step="0.01" placeholder="0.00" />
+                    </div>
+                    <div class="form-group">
+                        <label>Stock Quantity *</label>
+                        <input type="number" id="pStock" required min="0" placeholder="0" />
+                    </div>
+                    <div class="form-group">
+                        <label>Unit</label>
+                        <select id="pUnit">
+                            <option>pcs</option>
+                            <option>kg</option>
+                            <option>g</option>
+                            <option>L</option>
+                            <option>mL</option>
+                            <option>pack</option>
+                            <option>box</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Low Stock Threshold</label>
+                        <input type="number" id="pThreshold" min="0" placeholder="5" value="5" />
+                    </div>
+                    <div class="form-group">
+                        <label>Expiry Date</label>
+                        <input type="date" id="pExpiry" />
+                    </div>
+                    <div class="form-group" style="grid-column:1/-1">
+                        <label>Barcode / SKU</label>
+                        <input type="text" id="pBarcode" placeholder="Optional barcode or SKU" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-outline" onclick="closeModal('addProductModal')">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="addSupplierModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Add Supplier</h2>
+                <button class="modal-close" onclick="closeModal('addSupplierModal')">✕</button>
+            </div>
+            <form id="supplierForm" onsubmit="saveSupplier(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Supplier Name *</label>
+                        <input type="text" id="sName" required placeholder="Company / Person name" />
+                    </div>
+                    <div class="form-group">
+                        <label>Contact *</label>
+                        <input type="tel" id="sContact" required placeholder="Phone number" />
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="sEmail" placeholder="email@example.com" />
+                    </div>
+                    <div class="form-group">
+                        <label>Products Supplied</label>
+                        <input type="text" id="sProducts" placeholder="e.g. Dairy, Grains" />
+                    </div>
+                    <div class="form-group">
+                        <label>Outstanding Balance (₹)</label>
+                        <input type="number" id="sBalance" min="0" step="0.01" value="0" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-outline" onclick="closeModal('addSupplierModal')">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Supplier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- BILL RECEIPT MODAL -->
+    <div class="modal-overlay" id="receiptModal">
+        <div class="modal receipt-modal">
+            <div class="modal-header">
+                <h2>Bill Receipt</h2>
+                <button class="modal-close" onclick="closeModal('receiptModal')">✕</button>
+            </div>
+            <div id="receiptContent"></div>
+            <div class="modal-footer">
+                <button class="btn-outline" onclick="closeModal('receiptModal')">Close</button>
+                <button class="btn-primary" onclick="printReceipt()">🖨 Print</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR LABELS MODAL -->
+    <div class="modal-overlay" id="qrLabelsModal">
+        <div class="modal qr-labels-modal">
+            <div class="modal-header">
+                <h2>🏷️ Product QR Labels</h2>
+                <button class="modal-close" onclick="closeModal('qrLabelsModal')">✕</button>
+            </div>
+            <div class="qr-labels-toolbar">
+                <input type="text" id="qrLabelSearch" placeholder="Filter products…" oninput="filterQRLabels()"
+                    class="filter-input" />
+                <button class="btn-primary" onclick="printQRLabels()">🖨️ Print All</button>
+            </div>
+            <div class="qr-labels-grid" id="qrLabelsGrid"></div>
+        </div>
+    </div>
+
+    <!-- UPI PAYMENT MODAL -->
+    <div class="modal-overlay" id="upiModal">
+        <div class="modal upi-modal">
+            <div class="modal-header">
+                <h2>📱 UPI Payment</h2>
+                <button class="modal-close" onclick="cancelUPI()">✕</button>
+            </div>
+            <div class="upi-body">
+                <div class="upi-amount-badge">
+                    <span class="upi-label">Amount to Pay</span>
+                    <span class="upi-amount" id="upiAmount">₹0.00</span>
+                </div>
+                <div class="upi-qr-wrap">
+                    <canvas id="upiQR"></canvas>
+                    <div class="qr-shine"></div>
+                </div>
+                <div class="upi-id-box">
+                    <span class="upi-id-label">UPI ID</span>
+                    <span class="upi-id-value">freshmart@paytm</span>
+                </div>
+                <div class="upi-apps">
+                    <span class="upi-app-chip">📱 GPay</span>
+                    <span class="upi-app-chip">🟣 PhonePe</span>
+                    <span class="upi-app-chip">🔵 Paytm</span>
+                    <span class="upi-app-chip">🟠 BHIM</span>
+                </div>
+                <div class="upi-status" id="upiStatus">
+                    <span class="upi-spinner"></span> Waiting for payment…
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-outline" onclick="cancelUPI()">Cancel</button>
+                <button class="btn-primary" onclick="confirmUPI()">✅ Payment Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="app.js"></script>
+    <script src="app2.js"></script>
+</body>
+
+</html>
